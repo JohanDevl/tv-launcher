@@ -16,15 +16,16 @@ fi
 log "Installing $APK"
 if ! OUTPUT="$(tv install -r "$APK" 2>&1)"; then
     echo "$OUTPUT" >&2
-    # Only a downgrade justifies wiping the installed app; any other failure leaves it untouched.
-    if [[ "$OUTPUT" != *INSTALL_FAILED_VERSION_DOWNGRADE* ]]; then
+    # Only a downgrade or a signing key change justifies wiping the installed app;
+    # any other failure leaves it untouched.
+    if [[ "$OUTPUT" != *INSTALL_FAILED_VERSION_DOWNGRADE* && "$OUTPUT" != *INSTALL_FAILED_UPDATE_INCOMPATIBLE* ]]; then
         exit 1
     fi
     WAS_HOME=false
     [[ "$(current_home)" == "$HOME_ACTIVITY" ]] && WAS_HOME=true
     # Uninstalling the only enabled HOME app: bring the stock launcher back if anything fails.
     trap 'log "Install failed, restoring the stock launcher"; tv shell pm enable --user 0 "$STOCK_PKG" >/dev/null; set_home "$STOCK_ACTIVITY"' ERR
-    log "Older version: reinstalling from scratch (favorites will reset)"
+    log "Older version or different signing key: reinstalling from scratch (favorites will reset)"
     tv uninstall "$PKG" >/dev/null
     tv install "$APK" >/dev/null
     trap - ERR

@@ -25,6 +25,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        viewModel.onShown()
+    }
+
     // Home pressed (from the launcher itself or from another app): start again from the first tile.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

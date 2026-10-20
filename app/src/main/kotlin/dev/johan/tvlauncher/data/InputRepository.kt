@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 
 /**
@@ -22,10 +23,14 @@ import kotlinx.coroutines.flow.onStart
  */
 class InputRepository(private val context: Context) {
 
-    fun inputs(): Flow<List<InputEntry>> {
+    /**
+     * [refresh] forces a re-query: HDMI-CEC names can arrive after boot without the framework
+     * reporting an update, so the home screen asks again each time it is shown.
+     */
+    fun inputs(refresh: Flow<Unit>): Flow<List<InputEntry>> {
         val manager = context.getSystemService(TvInputManager::class.java) ?: return flowOf(emptyList())
         // Callbacks only signal a change; the binder queries run off the main thread.
-        return callbackFlow {
+        val changes = callbackFlow {
             val callback = object : TvInputManager.TvInputCallback() {
                 override fun onInputStateChanged(inputId: String, state: Int) { trySend(Unit) }
                 override fun onInputAdded(inputId: String) { trySend(Unit) }
@@ -35,6 +40,7 @@ class InputRepository(private val context: Context) {
             manager.registerCallback(callback, Handler(Looper.getMainLooper()))
             awaitClose { manager.unregisterCallback(callback) }
         }
+        return merge(changes, refresh)
             .onStart { emit(Unit) }
             .conflate()
             .map { query(manager) }

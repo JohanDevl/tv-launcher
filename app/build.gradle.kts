@@ -1,6 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Release signing comes from keystore.properties (git-ignored, see README "Signing key").
+// Without it, release builds are signed with the debug key: fine to try the app, but such an
+// APK cannot be installed over one signed with the real key.
+val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { file ->
+    Properties().apply { file.inputStream().use(::load) }
 }
 
 android {
@@ -11,7 +20,7 @@ android {
         applicationId = "dev.johan.tvlauncher"
         minSdk = 28
         targetSdk = 35
-        versionName = "0.1.1"
+        versionName = "0.2.0"
         // 1.2.3 -> 10203: always increases with the semantic version, never edited by hand.
         val (major, minor, patch) = requireNotNull(Regex("""(\d+)\.(\d{1,2})\.(\d{1,2})""").matchEntire(versionName!!)) {
             "versionName must be MAJOR.MINOR.PATCH with MINOR and PATCH below 100"
@@ -21,13 +30,13 @@ android {
     }
 
     signingConfigs {
-        // Committed on purpose (private repo): every build, from any clone or tag,
-        // must carry the same signature so versions can be installed over each other.
-        create("release") {
-            storeFile = rootProject.file("keystore/release.jks")
-            storePassword = "tvlauncher"
-            keyAlias = "tvlauncher"
-            keyPassword = "tvlauncher"
+        if (keystoreProperties != null) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
@@ -36,11 +45,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
         debug {
             applicationIdSuffix = ".debug"
-            signingConfig = signingConfigs.getByName("release")
         }
     }
 
