@@ -23,6 +23,7 @@ Android TV 9+ device.
 - [Common changes](#common-changes)
 - [Updating dependencies](#updating-dependencies)
 - [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Features
 
@@ -264,6 +265,18 @@ Versions live in `gradle/libs.versions.toml`; the Gradle wrapper in
 | An input shows a raw name (`Playback_2`) | Right after boot, HDMI-CEC names arrive a bit later; inputs are re-read each time the home screen is shown. |
 | `release.sh`: `keystore.properties missing` | Copy `keystore.properties` to the repository root (see [Signing key](#signing-key)). |
 
-## Credits
+## License
 
-Manrope typeface by Mikhail Sharanda, SIL Open Font License 1.1.
+Copyright © 2026 JohanDevl.
+
+tv-launcher is licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](LICENSE) (CC BY-NC-SA 4.0):
+
+- You may use, study, modify and share it, with credit to the author.
+- **No commercial use**: you may not sell it, ship it in a commercial product, or use it for a commercial service.
+- **ShareAlike**: modified versions must be published under the same license.
+
+For any use outside these terms (commercial licensing included), open an issue to ask.
+
+Third-party components keep their own licenses: the Manrope typeface (Mikhail Sharanda) is
+under the SIL Open Font License 1.1, and the AndroidX / Jetpack Compose / Kotlin libraries
+are under the Apache License 2.0.
