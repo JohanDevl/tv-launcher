@@ -1,5 +1,9 @@
 package dev.johan.tvlauncher.ui.components
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,7 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,28 +23,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.johan.tvlauncher.R
 import dev.johan.tvlauncher.ui.theme.Palette
-import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-/** Greeting and date on the left; quick actions and a large clock on the right. Ticks once per minute. */
+/** Greeting and date on the left; quick actions and a large clock on the right. Follows the system clock. */
 @Composable
 fun Header(modifier: Modifier = Modifier, actions: @Composable RowScope.() -> Unit = {}) {
     val context = LocalContext.current
     var now by remember { mutableStateOf(LocalDateTime.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            val next = now.truncatedTo(ChronoUnit.MINUTES).plusMinutes(1)
-            delay(java.time.Duration.between(LocalDateTime.now(), next).toMillis().coerceAtLeast(250))
-            now = LocalDateTime.now()
+    // System clock broadcasts keep the time right across minutes, manual changes and timezone
+    // switches; ON_START catches up after standby, when ticks are not delivered.
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                now = LocalDateTime.now()
+            }
         }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_TIME_TICK)
+            addAction(Intent.ACTION_TIME_CHANGED)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+        }
+        context.registerReceiver(receiver, filter)
+        onDispose { context.unregisterReceiver(receiver) }
     }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { now = LocalDateTime.now() }
     val locale = Locale.getDefault()
     val timePattern = if (DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm"
     val time = remember(now.hour, now.minute, timePattern) { now.format(DateTimeFormatter.ofPattern(timePattern, locale)) }

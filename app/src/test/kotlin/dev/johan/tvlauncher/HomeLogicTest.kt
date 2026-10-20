@@ -30,17 +30,29 @@ class HomeLogicTest {
     @Test
     fun moveFavoriteShiftsAndClampsToBounds() {
         val favorites = listOf("a", "b", "c")
+        val visible = favorites.toSet()
 
-        assertEquals(listOf("b", "a", "c"), HomeLogic.moveFavorite(favorites, "a", 1))
-        assertEquals(listOf("c", "a", "b"), HomeLogic.moveFavorite(favorites, "c", -2))
-        assertSame(favorites, HomeLogic.moveFavorite(favorites, "a", -1))
-        assertSame(favorites, HomeLogic.moveFavorite(favorites, "missing", 1))
+        assertEquals(listOf("b", "a", "c"), HomeLogic.moveFavorite(favorites, "a", 1, visible))
+        assertEquals(listOf("c", "a", "b"), HomeLogic.moveFavorite(favorites, "c", -2, visible))
+        assertSame(favorites, HomeLogic.moveFavorite(favorites, "a", -1, visible))
+        assertSame(favorites, HomeLogic.moveFavorite(favorites, "missing", 1, visible))
+    }
+
+    @Test
+    fun moveFavoriteSkipsAndPrunesEntriesNotOnScreen() {
+        val favorites = listOf("a", "uninstalled", "b")
+
+        assertEquals(listOf("b", "a"), HomeLogic.moveFavorite(favorites, "a", 1, visible = setOf("a", "b")))
     }
 
     @Test
     fun buildStateHidesAppsAndDropsUninstalledFavorites() {
         val apps = listOf(app("netflix"), app("vlc"), app("philips"))
-        val settings = LauncherSettings(favorites = listOf("vlc", "gone", "philips", "netflix"), hidden = setOf("philips"))
+        val settings = LauncherSettings(
+            favorites = listOf("vlc", "gone", "philips", "netflix"),
+            hidden = setOf("philips"),
+            initialized = true,
+        )
 
         val state = HomeLogic.buildState(apps, settings, inputs = emptyList())
 
@@ -48,6 +60,14 @@ class HomeLogicTest {
         assertEquals(listOf("netflix", "vlc"), state.apps.map { it.key })
         assertEquals(listOf("philips"), state.hiddenApps.map { it.key })
         assertEquals(setOf("vlc", "netflix"), state.favoriteKeys)
+        assertEquals(false, state.loading)
+    }
+
+    @Test
+    fun buildStateStaysLoadingUntilFavoritesAreSeeded() {
+        val state = HomeLogic.buildState(listOf(app("netflix")), LauncherSettings(), inputs = emptyList())
+
+        assertEquals(true, state.loading)
     }
 
     private fun app(key: String) = AppEntry(key = key, label = key, component = ComponentName(key, "$key.Main"))

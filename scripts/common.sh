@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Shared helpers for the device scripts. Source it, do not run it.
-set -euo pipefail
+set -Eeuo pipefail
 
 TV_ADDR="${TV_ADDR:-192.168.0.240:5555}"
 PKG="dev.johan.tvlauncher"

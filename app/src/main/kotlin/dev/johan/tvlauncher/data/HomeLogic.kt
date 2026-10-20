@@ -28,13 +28,18 @@ object HomeLogic {
 
     fun removeFavorite(favorites: List<String>, key: String): List<String> = favorites - key
 
-    /** Moves [key] by [delta] positions, clamped to the list bounds. */
-    fun moveFavorite(favorites: List<String>, key: String, delta: Int): List<String> {
-        val from = favorites.indexOf(key)
+    /**
+     * Moves [key] by [delta] positions among the favorites currently on screen ([visible]),
+     * clamped to the row bounds. Saved entries that are not visible (uninstalled apps) would
+     * otherwise swallow key presses, so they are pruned on the way.
+     */
+    fun moveFavorite(favorites: List<String>, key: String, delta: Int, visible: Set<String>): List<String> {
+        val shown = favorites.filter { it in visible }
+        val from = shown.indexOf(key)
         if (from < 0) return favorites
-        val to = (from + delta).coerceIn(0, favorites.lastIndex)
+        val to = (from + delta).coerceIn(0, shown.lastIndex)
         if (to == from) return favorites
-        return favorites.toMutableList().apply { add(to, removeAt(from)) }
+        return shown.toMutableList().apply { add(to, removeAt(from)) }
     }
 
     fun buildState(
@@ -48,7 +53,8 @@ object HomeLogic {
             .filter { it !in settings.hidden }
             .mapNotNull { byKey[it] }
         return HomeState(
-            loading = false,
+            // Until first-run favorites are seeded, showing the screen would flash an empty row.
+            loading = !settings.initialized,
             favorites = favorites,
             apps = visible,
             hiddenApps = apps.filter { it.key in settings.hidden },

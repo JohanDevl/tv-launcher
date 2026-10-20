@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Home pressed while the launcher is already in front: reset to the first tile.
+    // Home pressed (from the launcher itself or from another app): start again from the first tile.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.hasCategory(Intent.CATEGORY_HOME)) homePresses.tryEmit(Unit)

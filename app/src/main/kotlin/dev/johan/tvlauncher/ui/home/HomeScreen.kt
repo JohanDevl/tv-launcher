@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -72,19 +73,31 @@ fun HomeScreen(viewModel: HomeViewModel, homePresses: Flow<Unit>) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val favoritesState = rememberLazyListState()
     val entryFocus = remember { FocusRequester() }
 
     var accent by remember { mutableStateOf(NeutralGlow) }
     var menuTarget by remember { mutableStateOf<MenuTarget?>(null) }
     var movingKey by remember { mutableStateOf<String?>(null) }
     var showHidden by remember { mutableStateOf(false) }
+    var refocusOnNextState by remember { mutableStateOf(false) }
 
     fun backToStart() {
         movingKey = null
         scope.launch {
             listState.scrollToItem(0)
+            favoritesState.scrollToItem(0)
             withFrameNanos { }
             runCatching { entryFocus.requestFocus() }
+        }
+    }
+
+    // Removing the focused card (unpin, hide, uninstall) would leave the D-pad with no focus:
+    // once the list has actually changed, land back on the first tile.
+    LaunchedEffect(state) {
+        if (refocusOnNextState) {
+            refocusOnNextState = false
+            backToStart()
         }
     }
 
@@ -101,7 +114,7 @@ fun HomeScreen(viewModel: HomeViewModel, homePresses: Flow<Unit>) {
     val openMenu = { app: AppEntry, fromFavorites: Boolean -> menuTarget = MenuTarget(app, fromFavorites) }
     val sourcesAvailable = remember { Actions.canOpenSources(context) }
 
-    AmbientBackground(accent) {
+    AmbientBackground(accent = { accent }) {
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(top = 36.dp, bottom = 48.dp),
@@ -125,6 +138,7 @@ fun HomeScreen(viewModel: HomeViewModel, homePresses: Flow<Unit>) {
                 } else {
                     FavoritesRow(
                         state = state,
+                        rowState = favoritesState,
                         cache = viewModel.artwork,
                         movingKey = movingKey,
                         entryFocus = entryFocus,
@@ -200,16 +214,29 @@ fun HomeScreen(viewModel: HomeViewModel, homePresses: Flow<Unit>) {
             target = target,
             isFavorite = target.app.key in state.favoriteKeys,
             onDismiss = { menuTarget = null },
-            onToggleFavorite = { viewModel.toggleFavorite(target.app.key) },
+            onToggleFavorite = {
+                if (target.fromFavorites) refocusOnNextState = true
+                viewModel.toggleFavorite(target.app.key)
+            },
             onMove = { movingKey = target.app.key },
-            onHide = { viewModel.setHidden(target.app.key, true) },
+            onHide = {
+                refocusOnNextState = true
+                viewModel.setHidden(target.app.key, true)
+            },
+            onUninstall = {
+                refocusOnNextState = true
+                Actions.uninstall(context, target.app)
+            },
         )
     }
 
     if (showHidden && state.hiddenApps.isNotEmpty()) {
         HiddenAppsDialog(
             apps = state.hiddenApps,
-            onUnhide = { viewModel.setHidden(it.key, false) },
+            onUnhide = {
+                if (state.hiddenApps.size == 1) refocusOnNextState = true
+                viewModel.setHidden(it.key, false)
+            },
             onDismiss = { showHidden = false },
         )
     }
@@ -218,6 +245,7 @@ fun HomeScreen(viewModel: HomeViewModel, homePresses: Flow<Unit>) {
 @Composable
 private fun FavoritesRow(
     state: HomeState,
+    rowState: LazyListState,
     cache: ArtworkCache,
     movingKey: String?,
     entryFocus: FocusRequester,
@@ -228,7 +256,6 @@ private fun FavoritesRow(
     onFocused: (Color) -> Unit,
     onRowFocused: () -> Unit,
 ) {
-    val rowState = rememberLazyListState()
     val movingIndex = state.favorites.indexOfFirst { it.key == movingKey }
     LaunchedEffect(movingIndex) {
         if (movingIndex >= 0) {
@@ -327,6 +354,7 @@ private fun AppMenu(
     onToggleFavorite: () -> Unit,
     onMove: () -> Unit,
     onHide: () -> Unit,
+    onUninstall: () -> Unit,
 ) {
     val context = LocalContext.current
     val app = target.app
@@ -339,7 +367,7 @@ private fun AppMenu(
         }
         add(MenuItem(stringResource(R.string.menu_hide), R.drawable.ic_visibility_off, onHide))
         add(MenuItem(stringResource(R.string.menu_app_info), R.drawable.ic_info) { Actions.openAppInfo(context, app) })
-        add(MenuItem(stringResource(R.string.menu_uninstall), R.drawable.ic_delete) { Actions.uninstall(context, app) })
+        add(MenuItem(stringResource(R.string.menu_uninstall), R.drawable.ic_delete, onUninstall))
     }
     ActionMenu(title = app.label, subtitle = null, items = items, onDismiss = onDismiss)
 }

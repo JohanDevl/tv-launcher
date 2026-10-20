@@ -34,8 +34,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         else it.copy(favorites = HomeLogic.addFavorite(it.favorites, key))
     }
 
-    fun moveFavorite(key: String, delta: Int) = edit {
-        it.copy(favorites = HomeLogic.moveFavorite(it.favorites, key, delta))
+    fun moveFavorite(key: String, delta: Int) {
+        val visible = state.value.favoriteKeys
+        edit { it.copy(favorites = HomeLogic.moveFavorite(it.favorites, key, delta, visible)) }
     }
 
     fun setHidden(key: String, hidden: Boolean) = edit {

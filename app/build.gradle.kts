@@ -11,9 +11,12 @@ android {
         applicationId = "dev.johan.tvlauncher"
         minSdk = 28
         targetSdk = 35
-        versionName = "0.1.0"
+        versionName = "0.1.1"
         // 1.2.3 -> 10203: always increases with the semantic version, never edited by hand.
-        versionCode = versionName!!.split(".").map(String::toInt).let { (major, minor, patch) -> major * 10000 + minor * 100 + patch }
+        val (major, minor, patch) = requireNotNull(Regex("""(\d+)\.(\d{1,2})\.(\d{1,2})""").matchEntire(versionName!!)) {
+            "versionName must be MAJOR.MINOR.PATCH with MINOR and PATCH below 100"
+        }.destructured
+        versionCode = major.toInt() * 10000 + minor.toInt() * 100 + patch.toInt()
         ndk { abiFilters += setOf("armeabi-v7a", "arm64-v8a") }
     }
 

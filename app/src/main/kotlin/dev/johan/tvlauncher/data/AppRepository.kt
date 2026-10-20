@@ -7,11 +7,14 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import java.text.Collator
 
 /** Lists TV apps and re-emits whenever a package is installed, updated or removed. */
@@ -19,10 +22,20 @@ class AppRepository(private val context: Context) {
 
     private val pm: PackageManager = context.packageManager
 
-    fun apps(): Flow<List<AppEntry>> = callbackFlow {
+    @OptIn(FlowPreview::class)
+    fun apps(): Flow<List<AppEntry>> = packageChanges()
+        // One app update fires several broadcasts: rebuild the list once, off the main thread.
+        .debounce(PACKAGE_EVENT_DEBOUNCE_MS)
+        .onStart { emit(Unit) }
+        .map { query() }
+        .flowOn(Dispatchers.IO)
+
+    private fun packageChanges(): Flow<Unit> = callbackFlow {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                trySend(query())
+                val replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                if (intent.action == Intent.ACTION_PACKAGE_REMOVED && replacing) return
+                trySend(Unit)
             }
         }
         val filter = IntentFilter().apply {
@@ -33,9 +46,8 @@ class AppRepository(private val context: Context) {
             addDataScheme("package")
         }
         context.registerReceiver(receiver, filter)
-        send(query())
         awaitClose { context.unregisterReceiver(receiver) }
-    }.conflate().flowOn(Dispatchers.IO)
+    }
 
     private fun query(): List<AppEntry> {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
@@ -54,5 +66,9 @@ class AppRepository(private val context: Context) {
             }
             .sortedWith { a, b -> collator.compare(a.label, b.label) }
             .toList()
+    }
+
+    private companion object {
+        const val PACKAGE_EVENT_DEBOUNCE_MS = 400L
     }
 }

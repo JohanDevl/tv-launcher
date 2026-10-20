@@ -30,7 +30,7 @@ built around the apps' own artwork and the remote's D-pad.
 | UI | 1920x1080 @ 320 dpi (960x540 dp) |
 | Access | ADB over the local network (`192.168.0.240:5555`, override with `TV_ADDR`) |
 
-Measured on the TV (v0.1.0): cold start ~1.0 s (`am start -W`), ~56 MB PSS, 2 MB APK.
+Measured on the TV (v0.1.x): cold start ~1.0 s (`am start -W`), ~56 MB PSS, 2 MB APK.
 
 ## Requirements
 

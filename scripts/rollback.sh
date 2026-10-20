@@ -10,11 +10,12 @@ case "${1:-}" in
     --version)
         TAG="${2:?usage: rollback.sh --version vX.Y.Z}"
         DIR="$(mktemp -d)"
+        trap 'rm -rf "$DIR"' EXIT
         log "Downloading release $TAG"
         gh release download "$TAG" --repo JohanDevl/tv-launcher --pattern '*.apk' --dir "$DIR"
         APK="$(ls "$DIR"/*.apk | head -1)"
-        # Older versionCodes cannot be installed over newer ones on user builds: reinstall.
-        tv uninstall "$PKG" >/dev/null 2>&1 || true
+        # install.sh handles downgrades (uninstall + install) and restores the stock
+        # launcher if that fails, so the TV is never left without a HOME app.
         "$(dirname "$0")/install.sh" "$APK"
         "$(dirname "$0")/set-home.sh"
         exit 0
