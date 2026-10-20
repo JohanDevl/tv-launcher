@@ -11,8 +11,9 @@ android {
         applicationId = "dev.johan.tvlauncher"
         minSdk = 28
         targetSdk = 35
-        versionCode = 1
         versionName = "0.1.0"
+        // 1.2.3 -> 10203: always increases with the semantic version, never edited by hand.
+        versionCode = versionName!!.split(".").map(String::toInt).let { (major, minor, patch) -> major * 10000 + minor * 100 + patch }
         ndk { abiFilters += setOf("armeabi-v7a", "arm64-v8a") }
     }
 
