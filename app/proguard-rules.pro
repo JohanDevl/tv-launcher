@@ -1,0 +1,1 @@
+# Compose, AndroidX and DataStore ship their own consumer rules.

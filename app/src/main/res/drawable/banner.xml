@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 320x180dp leanback banner: dark slate with a warm glow and a minimal "home" glyph. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path android:pathData="M0,0h320v180h-320z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:endX="320"
+                android:endY="180"
+                android:startX="0"
+                android:startY="0"
+                android:type="linear">
+                <item android:color="#FF1B1F2B" android:offset="0" />
+                <item android:color="#FF07080C" android:offset="1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFF5B04C"
+        android:pathData="M104,98 L128,76 L152,98 L152,122 L138,122 L138,106 L118,106 L118,122 L104,122 Z" />
+    <path
+        android:fillColor="#FFF4F1EA"
+        android:pathData="M168,84h52v8h-52z M168,100h80v6h-80z M168,112h64v6h-64z" />
+</vector>
