@@ -1,24 +1,33 @@
 package dev.johan.tvlauncher
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Text
+import androidx.activity.viewModels
+import dev.johan.tvlauncher.ui.home.HomeScreen
+import dev.johan.tvlauncher.ui.home.HomeViewModel
+import dev.johan.tvlauncher.ui.theme.LauncherTheme
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: HomeViewModel by viewModels()
+    private val homePresses = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Box(Modifier.fillMaxSize().background(Color(0xFF07080C)), contentAlignment = Alignment.Center) {
-                Text("tv-launcher spike", color = Color.White, fontSize = 32.sp)
+            LauncherTheme {
+                HomeScreen(viewModel, homePresses)
             }
         }
+    }
+
+    // Home pressed while the launcher is already in front: reset to the first tile.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) homePresses.tryEmit(Unit)
     }
 }
