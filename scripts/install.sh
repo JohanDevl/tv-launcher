@@ -18,4 +18,7 @@ if ! tv install -r "$APK"; then
     tv uninstall "$PKG" >/dev/null || true
     tv install "$APK"
 fi
+# Sideloaded apps start interpreted/JIT; compile ahead of time for a fast first launch.
+log "Compiling ahead of time"
+tv shell cmd package compile -m speed -f "$PKG" >/dev/null
 log "Installed $(tv shell dumpsys package "$PKG" | grep -m1 versionName | xargs)"

@@ -1,0 +1,4 @@
+# Hand-written baseline profile: the TV runs Android 12 without root, where profiles
+# cannot be generated. Compose and AndroidX ship their own profiles, merged at build time.
+HSPLdev/johan/tvlauncher/**;->**(**)**
+Ldev/johan/tvlauncher/**;

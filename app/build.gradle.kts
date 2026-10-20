@@ -13,6 +13,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        ndk { abiFilters += setOf("armeabi-v7a", "arm64-v8a") }
     }
 
     signingConfigs {
